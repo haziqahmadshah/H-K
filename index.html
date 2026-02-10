@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>H & K</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- PWA / App-like -->
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="H & K">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  color:white;
+  background-color:#0f2027;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Ctext x='30' y='60' font-size='24' fill='rgba(255,140,160,0.12)'%3E❤%3C/text%3E%3Ctext x='110' y='130' font-size='20' fill='rgba(255,140,160,0.1)'%3E❤%3C/text%3E%3C/svg%3E");
+  background-repeat:repeat;
+}
+
+/* light blur only */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  backdrop-filter:blur(2px);
+  pointer-events:none;
+}
+
+/* HEADER */
+header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px;
+  font-weight:600;
+  background:rgba(11,26,32,0.88);
+  backdrop-filter:blur(10px);
+  z-index:1;
+}
+
+header span{
+  flex:1;
+  text-align:center;
+}
+
+/* Dots */
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  opacity:0.3;
+}
+
+.dot.blue{ background:#4fc3ff; }
+.dot.pink{ background:#ff8fb1; }
+
+.dot.online{
+  opacity:1;
+  box-shadow:0 0 6px currentColor, 0 0 12px currentColor;
+}
+
+.dot.idle{
+  opacity:0.6;
+}
+
+/* CHAT */
+#chat{
+  flex:1;
+  overflow-y:auto;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  z-index:1;
+}
+
+.msg{
+  background:#203a43;
+  padding:10px 14px;
+  border-radius:18px;
+  max-width:75%;
+  align-self:flex-start;
+}
+
+.me{
+  background:#2c5364;
+  align-self:flex-end;
+}
+
+.name{
+  font-size:11px;
+  margin-bottom:4px;
+  font-weight:600;
+}
+
+.name.blue{ color:#4fc3ff; }
+.name.pink{ color:#ff8fb1; }
+
+.img{
+  max-width:100%;
+  border-radius:12px;
+  margin-top:6px;
+}
+
+/* TYPING */
+#typing{
+  font-size:12px;
+  opacity:0.6;
+  padding:0 14px 6px;
+  min-height:16px;
+}
+
+/* INPUT BAR */
+#bar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  background:rgba(11,26,32,0.95);
+  backdrop-filter:blur(12px);
+}
+
+#msg{
+  flex:1;
+  padding:12px 16px;
+  border-radius:22px;
+  border:none;
+  outline:none;
+  font-size:16px;
+}
+
+button{
+  padding:10px 18px;
+  border-radius:22px;
+  border:none;
+  background:#ff8fb1;
+  color:#0b1a20;
+  font-weight:600;
+}
+
+.icon{
+  font-size:22px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div id="dot-h" class="dot blue"></div>
+  <span>💗 H & K</span>
+  <div id="dot-k" class="dot pink"></div>
+</header>
+
+<div id="chat"></div>
+<div id="typing"></div>
+
+<div id="bar">
+  <div class="icon" onclick="pickImage()">📷</div>
+  <input id="msg" placeholder="Message…" autocomplete="off">
+  <button onclick="send()">Send</button>
+</div>
+
+<input type="file" id="imgPicker" accept="image/*" hidden>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* PASSWORD */
+const CHAT_PASSWORD = "hnk123";
+
+let savedPass = localStorage.getItem("chat_pass");
+if(savedPass !== CHAT_PASSWORD){
+  const input = prompt("Enter password:");
+  if(input !== CHAT_PASSWORD){
+    document.body.innerHTML = "";
+    throw "Access denied";
+  }
+  localStorage.setItem("chat_pass", CHAT_PASSWORD);
+}
+
+/* Name */
+let username = localStorage.getItem("chat_name");
+if(!username){
+  username = prompt("Your name?");
+  localStorage.setItem("chat_name", username || "Unknown");
+}
+
+/* Name → color */
+function nameClass(name){
+  const n = (name||"").toLowerCase();
+  if(n.includes("haziq")) return "blue";
+  if(n.includes("kaunain")) return "pink";
+  return "";
+}
+
+/* Firebase */
+firebase.initializeApp({
+  apiKey:"AIzaSyB0FpYJytVZuHjtHjL5-RDK1MlIEEi6K6c",
+  authDomain:"private-chat-4f4b9.firebaseapp.com",
+  projectId:"private-chat-4f4b9"
+});
+const db = firebase.firestore();
+
+/* PRESENCE */
+const presence = db.collection("presence");
+
+function updatePresence(){
+  presence.doc(username).set({
+    name: username,
+    time: Date.now()
+  });
+}
+
+updatePresence();
+setInterval(updatePresence, 5000);
+msg.addEventListener("input", updatePresence);
+
+presence.onSnapshot(snap=>{
+  let now = Date.now();
+  let hState = "offline";
+  let kState = "offline";
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+    const age = now - d.time;
+    const n = d.name.toLowerCase();
+
+    let state = "offline";
+    if(age < 5000) state = "online";
+    else if(age < 15000) state = "idle";
+
+    if(n.includes("haziq")) hState = state;
+    if(n.includes("kaunain")) kState = state;
+  });
+
+  setDot("dot-h", hState);
+  setDot("dot-k", kState);
+});
+
+function setDot(id, state){
+  const el = document.getElementById(id);
+  el.classList.remove("online","idle");
+  if(state === "online") el.classList.add("online");
+  if(state === "idle") el.classList.add("idle");
+}
+
+/* Typing indicator */
+msg.addEventListener("input",()=>{
+  db.collection("typing").doc("status").set({
+    name: username,
+    time: Date.now()
+  });
+});
+
+db.collection("typing").doc("status").onSnapshot(doc=>{
+  if(!doc.exists) return;
+  const d = doc.data();
+  if(d.name !== username && Date.now() - d.time < 2000){
+    typing.textContent = `${d.name} is typing…`;
+  } else {
+    typing.textContent = "";
+  }
+});
+
+/* Send text */
+function send(){
+  const text = msg.value.trim();
+  if(!text) return;
+
+  db.collection("messages").add({
+    name: username,
+    text,
+    time: Date.now()
+  });
+  msg.value="";
+}
+
+/* Image */
+function pickImage(){ imgPicker.click(); }
+
+imgPicker.onchange = ()=>{
+  const file = imgPicker.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    db.collection("messages").add({
+      name: username,
+      image: reader.result,
+      time: Date.now()
+    });
+  };
+  reader.readAsDataURL(file);
+};
+
+/* Messages */
+db.collection("messages").orderBy("time").onSnapshot(snap=>{
+  chat.innerHTML="";
+  snap.forEach(doc=>{
+    const d = doc.data();
+    const displayName = d.name || "Unknown";
+
+    const bubble = document.createElement("div");
+    bubble.className = "msg" + (displayName === username ? " me" : "");
+
+    const name = document.createElement("div");
+    name.className = "name " + nameClass(displayName);
+    name.textContent = displayName;
+    bubble.appendChild(name);
+
+    if(d.text){
+      bubble.appendChild(document.createTextNode(d.text));
+    }
+
+    if(d.image){
+      const img = document.createElement("img");
+      img.src = d.image;
+      img.className = "img";
+      bubble.appendChild(img);
+    }
+
+    chat.appendChild(bubble);
+  });
+  chat.scrollTop = chat.scrollHeight;
+});
+</script>
+
+</body>
+</html>
