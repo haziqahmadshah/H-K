@@ -43,7 +43,7 @@ body::before {
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* This height is controlled by JS to match the visible area exactly */
+  /* Height managed by JS for keyboard safety */
   height: 100%; 
   position: absolute;
   top: 0;
@@ -76,7 +76,7 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
-/* --- RESTORED FOOTER FROM OLD CODE --- */
+/* --- FOOTER (EXACTLY FROM OLD CODE) --- */
 #bar {
   display: flex;
   align-items: center;
@@ -85,7 +85,6 @@ header {
   background: rgba(11,26,32,0.95);
   flex-shrink: 0;
   z-index: 100;
-  /* Ensures it sits at the bottom of the flex container */
 }
 
 #msg {
@@ -96,19 +95,10 @@ header {
   border-radius: 18px;
   border: none;
   font-size: 16px;
-  background: white; /* Or #1e272e if you want dark mode input, old code implied default/white */
-  color: black;      /* Adjust to white if using dark background */
-  font-family: inherit;
-}
-/* Re-applying dark theme to input based on your screenshots */
-#msg {
+  /* Added dark background to match your screenshots */
   background: #1e272e;
   color: white;
-}
-
-.icon {
-  font-size: 22px;
-  cursor: pointer;
+  outline: none;
 }
 
 button {
@@ -118,7 +108,11 @@ button {
   border: none;
   background: #ff8fb1;
   font-weight: 600;
-  color: white;
+  color: white; /* Ensures text is white */
+}
+
+.icon {
+  font-size: 22px;
   cursor: pointer;
 }
 
@@ -261,7 +255,7 @@ header span {
 
   <div id="bar">
     <span class="icon" onclick="pickImage()">📷</span>
-    <textarea id="msg" placeholder="Message…" rows="1"></textarea>
+    <textarea id="msg" placeholder="Message…"></textarea>
     <button onclick="send()">Send</button>
   </div>
 </div>
@@ -273,21 +267,18 @@ header span {
 
 <script>
 /* =========================================
-   CRITICAL VIEWPORT FIX
-   This ensures the footer sits exactly above the 
-   keyboard or at the bottom of the screen.
+   KEYBOARD VIEWPORT FIX (CRITICAL)
    ========================================= */
 const viewport = window.visualViewport;
 const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  // This physically resizes the app container to match the visible screen
+  // This pushes the footer UP when keyboard opens
   appView.style.height = `${viewport.height}px`;
   
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
-  // Scroll to top to prevent body scroll
   window.scrollTo(0, 0);
 }
 
@@ -297,11 +288,9 @@ if (viewport) {
 }
 window.addEventListener('load', resizeLayout);
 
-
 /* =========================================
    APP LOGIC
    ========================================= */
-
 let replyData=null;
 let otherReadTime = 0;
 let cachedMessages = [];
@@ -411,7 +400,6 @@ function send(){
   
   db.collection("messages").add(payload);
   msgInput.value="";
-  msgInput.style.height = 'auto';
   msgInput.focus();
 }
 
@@ -571,11 +559,6 @@ function renderMessages(messages){
 
   if(wasAtBottom) chat.scrollTop=chat.scrollHeight;
 }
-
-msgInput.addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = (this.scrollHeight) + 'px';
-});
 </script>
 
 </body>
