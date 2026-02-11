@@ -49,8 +49,8 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* ADJUSTED: Reduced top padding to move header up */
-  padding: calc(8px + env(safe-area-inset-top)) 14px 12px 14px;
+  /* ADJUSTED: Reduced top padding to 4px + safe area to remove upper gap */
+  padding: calc(4px + env(safe-area-inset-top)) 14px 10px 14px;
   font-weight: 600;
   background: rgba(11, 26, 32, 0.95);
   backdrop-filter: blur(15px);
@@ -76,10 +76,10 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px; /* Reduced vertical padding */
+  padding: 10px 14px;
   background: #0b1a20;
-  /* ADJUSTED: Reduced extra lift so it sits lower */
-  padding-bottom: calc(5px + env(safe-area-inset-bottom));
+  /* ADJUSTED: Reduced bottom padding to remove lower gap */
+  padding-bottom: calc(2px + env(safe-area-inset-bottom));
   z-index: 20;
   flex-shrink: 0;
 }
@@ -208,6 +208,8 @@ header span {
   resize: none;
   min-height: 24px;
   max-height: 120px;
+  /* Added margin-bottom to lift chatbox slightly within bar */
+  margin-bottom: 2px;
 }
 #msg::placeholder { color: #a4b0be; }
 
