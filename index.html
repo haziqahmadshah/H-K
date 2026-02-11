@@ -51,21 +51,17 @@ header {
   align-items: center;
   justify-content: space-between;
   
-  /* --- FIX 1: Minimal Top Padding --- */
-  /* Just enough to cover the notch, no extra floating space */
-  padding-top: env(safe-area-inset-top); 
-  padding-bottom: 12px;
+  /* --- FIXED: Safe Area for Notch/Status Bar --- */
+  padding-top: calc(env(safe-area-inset-top));
+  padding-bottom: 10px;
   padding-left: 14px;
   padding-right: 14px;
-  /* ---------------------------------- */
+  /* ------------------------------------------- */
 
   font-weight: 600;
-  
-  /* --- FIX 2: SOLID BACKGROUND --- */
-  /* Completely opaque. No blur, no transparency. */
+  /* MODIFIED: Solid background to hide hearts/blur in status bar area */
   background: #0b1a20; 
-  
-  z-index: 50;
+  z-index: 20;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
@@ -86,19 +82,13 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  
-  /* --- FIX 3: SOLID BACKGROUND --- */
-  /* Opaque black. Removes the "invisible something" above the footer. */
   background: #0b1a20;
   
-  /* --- FIX 4: FLUSH TO BOTTOM --- */
-  /* Removed 'env(safe-area...)' so it sits right on the edge */
-  padding: 10px 14px;
-  padding-bottom: 10px; 
-  /* ---------------------------------- */
+  /* --- MODIFIED: Standard padding, removed Safe Area logic --- */
+  padding: 10px 14px; 
+  /* -------------------------------------------------------- */
 
-  z-index: 50;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 20;
   flex-shrink: 0;
 }
 
@@ -198,12 +188,11 @@ header span {
 #replyBar {
   display: none;
   padding: 8px 14px;
-  background: #0b1a20; /* Fixed to match solid theme */
+  background: rgba(255, 143, 177, 0.2);
   font-size: 12px;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  border-top: 1px solid rgba(255, 143, 177, 0.3);
 }
 #replyBar b { color: #ff8fb1; }
 
