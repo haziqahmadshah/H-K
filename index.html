@@ -12,16 +12,14 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <style>
-/* CORE LAYOUT FIX 
-   We rely on JavaScript to set the height, so we use simpler CSS here.
-*/
+/* CORE LAYOUT FIX */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%; /* Fallback */
-  overflow: hidden; /* Prevent native scrolling */
-  position: fixed; /* Lock body in place */
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: white;
   background: #0f2027;
@@ -39,22 +37,20 @@ body::before {
   pointer-events: none;
 }
 
-/* THE APP CONTAINER
-   The JS will update this element's height instantly when keyboard opens.
-*/
+/* THE APP CONTAINER */
 #app-view {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%; /* Default to 100% until JS takes over */
+  height: 100%;
 }
 
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Add safe area padding for the notch */
-  padding: calc(14px + env(safe-area-inset-top)) 14px 14px 14px;
+  /* ADJUSTED: Reduced top padding to move header up */
+  padding: calc(8px + env(safe-area-inset-top)) 14px 12px 14px;
   font-weight: 600;
   background: rgba(11, 26, 32, 0.95);
   backdrop-filter: blur(15px);
@@ -80,10 +76,10 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 10px 14px; /* Reduced vertical padding */
   background: #0b1a20;
-  /* Add safe area padding for home bar + extra lift */
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  /* ADJUSTED: Reduced extra lift so it sits lower */
+  padding-bottom: calc(5px + env(safe-area-inset-bottom));
   z-index: 20;
   flex-shrink: 0;
 }
@@ -269,36 +265,29 @@ button {
 
 <script>
 /* =========================================
-   KEYBOARD VIEWPORT FIX (THE MAGIC PART)
+   KEYBOARD VIEWPORT FIX
    ========================================= */
 const viewport = window.visualViewport;
 const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  // This manually sets the app height to visible screen space
-  // This forces the header down when the keyboard pushes up
   appView.style.height = `${viewport.height}px`;
   
-  // Scroll to bottom if keyboard opened
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
-  
-  // Reset window scroll to keep header pinned top
   window.scrollTo(0, 0);
 }
 
-// Listen for keyboard open/close
 if (viewport) {
   viewport.addEventListener('resize', resizeLayout);
   viewport.addEventListener('scroll', resizeLayout);
 }
-// Also run on load
 window.addEventListener('load', resizeLayout);
 
 
 /* =========================================
-   BASELINE LOGIC BELOW
+   BASELINE LOGIC
    ========================================= */
 
 let replyData=null;
