@@ -42,14 +42,12 @@ body::before {
 #app-view {
   display: flex;
   flex-direction: column;
-  position: fixed; 
+  width: 100%;
+  /* Height is managed by JavaScript to react to keyboard */
+  height: 100vh; 
+  position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0; 
-  width: 100%;
-  height: 100%;
-  z-index: 1;
 }
 
 header {
@@ -78,15 +76,15 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Input Bar Styling */
+/* --- FIXED FOOTER BAR --- */
 #bar {
   display: flex;
   align-items: center;
   gap: 12px;
   background: #0b1a20;
-  padding: 10px 14px; /* Flush to bottom */
-  z-index: 9999; /* Highest layer */
-  position: relative; 
+  /* padding-bottom adds a small buffer for the home indicator */
+  padding: 10px 14px 12px 14px; 
+  z-index: 100;
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
@@ -238,7 +236,6 @@ button {
 <body>
 
 <div id="app-view">
-
   <header>
     <div class="presence">
       <div id="dot-h" class="dot blue"></div>
@@ -264,7 +261,6 @@ button {
     <textarea id="msg" placeholder="Message…" rows="1"></textarea>
     <button onclick="send()">Send</button>
   </div>
-
 </div>
 
 <input type="file" id="imgPicker" accept="image/*" hidden>
@@ -274,13 +270,18 @@ button {
 
 <script>
 /* =========================================
-   KEYBOARD VIEWPORT FIX
+   REVERTED KEYBOARD VIEWPORT FIX
    ========================================= */
 const viewport = window.visualViewport;
+const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  // Removed appView.style.height assignment to stop invisible resizing
+  
+  // Directly setting the height of the app container to the 
+  // actual visible height (this pushes the bar up with the keyboard)
+  appView.style.height = `${viewport.height}px`;
+  
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
   window.scrollTo(0, 0);
@@ -291,6 +292,7 @@ if (viewport) {
   viewport.addEventListener('scroll', resizeLayout);
 }
 window.addEventListener('load', resizeLayout);
+
 
 /* =========================================
    BASELINE LOGIC
