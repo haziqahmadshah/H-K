@@ -52,7 +52,7 @@ header {
   justify-content: space-between;
   
   /* --- FIXED: Safe Area for Notch/Status Bar --- */
-  padding-top: calc(env(safe-area-inset-top) + 10px);
+  padding-top: calc(env(safe-area-inset-top));
   padding-bottom: 10px;
   padding-left: 14px;
   padding-right: 14px;
@@ -88,7 +88,7 @@ header {
   padding-top: 10px;
   padding-left: 14px;
   padding-right: 14px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  padding-bottom: calc(env(safe-area-inset-bottom));
   /* ------------------------------------------------ */
 
   z-index: 20;
