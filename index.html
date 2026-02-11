@@ -42,27 +42,24 @@ body::before {
 #app-view {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100vh; /* Fixed to viewport height */
-  position: absolute;
+  position: fixed; /* Changed to fixed */
   top: 0;
-  bottom: 0;
+  left: 0;
+  right: 0;
+  bottom: 0; /* Ensures it stays within screen bounds */
+  width: 100%;
+  height: 100%;
 }
 
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
-  /* --- FIXED: Safe Area for Notch/Status Bar --- */
   padding-top: calc(env(safe-area-inset-top) + 5px);
   padding-bottom: 10px;
   padding-left: 14px;
   padding-right: 14px;
-  /* ------------------------------------------- */
-
   font-weight: 600;
-  /* Solid background to hide hearts/blur in status bar area */
   background: #0b1a20; 
   z-index: 20;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -86,15 +83,12 @@ header {
   align-items: center;
   gap: 12px;
   background: #0b1a20;
-  
-  /* --- FIXED: Flush Padding (Removed safe-area) --- */
-  padding: 10px 14px;
-  /* ----------------------------------------------- */
-
+  /* FIXED: Set padding-bottom to 10px to keep it flush but visible */
+  padding: 10px 14px 10px 14px; 
   z-index: 20;
   flex-shrink: 0;
-  width: 100%;             /* Ensures background spans full width */
-  box-sizing: border-box;  /* Prevents horizontal scrolling */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* HEADER TEXT */
@@ -286,8 +280,8 @@ const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  // --- FIXED: Disabled height calc to prevent floating footer ---
-  // appView.style.height = `${viewport.height}px`; 
+  // This helps handle the virtual keyboard offset
+  appView.style.height = `${viewport.height}px`;
   
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
@@ -299,7 +293,6 @@ if (viewport) {
   viewport.addEventListener('scroll', resizeLayout);
 }
 window.addEventListener('load', resizeLayout);
-
 
 /* =========================================
    BASELINE LOGIC
