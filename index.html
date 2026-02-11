@@ -20,16 +20,18 @@ body{
   flex-direction:column;
   color:white;
   background:#0f2027;
+  /* Substrate for the blur effect */
   background-attachment: fixed;
 }
 
+/* SUBTLE BLUR EFFECT ON BACKGROUND */
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Ctext x='30' y='60' font-size='24' fill='rgba(255,140,160,0.12)'%3E❤%3C/text%3E%3Ctext x='110' y='130' font-size='20' fill='rgba(255,140,160,0.1)'%3E❤%3C/text%3E%3C/svg%3E");
   background-repeat:repeat;
-  filter: blur(1.5px);
+  filter: blur(1.5px); /* Very subtle blur */
   z-index: -1;
 }
 
@@ -55,10 +57,11 @@ header{
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
+/* H & K TEXT PINK */
 header span {
   flex:1;
   text-align:center;
-  color: #ff8fb1;
+  color: #ff8fb1; /* Pink color */
   text-shadow: 0 0 10px rgba(255, 143, 177, 0.3);
 }
 
@@ -99,6 +102,7 @@ header span {
 .name.blue{color:#4fc3ff}
 .name.pink{color:#ff8fb1}
 
+/* READ RECEIPTS CSS */
 .time-row {
   display: flex;
   align-items: center;
@@ -106,15 +110,18 @@ header span {
   gap: 4px;
   margin-top: 4px;
 }
-
 .time{ font-size:10px; opacity:0.6; }
-
 .status{ font-size: 12px; line-height: 1; display: none; }
 .me .status { display: inline-block; }
 .status.read { color: #4fc3ff; }
 .status.sent { color: rgba(255,255,255,0.3); }
 
-.img{ max-width:100%; border-radius:12px; margin-top:6px; display: block; }
+.img{
+  max-width:100%;
+  border-radius:12px;
+  margin-top:6px;
+  display: block;
+}
 
 .reply-preview{
   border-left:3px solid #ff8fb1;
@@ -183,6 +190,7 @@ header span {
   min-height:16px;
 }
 
+/* MATCHED TO SCREENSHOT */
 #bar {
   display: flex;
   align-items: center;
@@ -206,10 +214,19 @@ header span {
   max-height: 120px;
 }
 
-#msg::placeholder { color: #a4b0be; }
+#msg::placeholder {
+  color: #a4b0be;
+}
+
+.icon {
+  font-size: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
 
 button {
-  background: #f8a5c2;
+  background: #f8a5c2; /* Soft pink oval */
   color: white;
   border: none;
   border-radius: 30px;
@@ -228,7 +245,9 @@ button {
     <div id="dot-h" class="dot blue"></div>
     <div id="last-h">offline</div>
   </div>
+
   <span>💗 H & K</span>
+
   <div class="presence">
     <div id="dot-k" class="dot pink"></div>
     <div id="last-k">offline</div>
@@ -244,7 +263,7 @@ button {
 </div>
 
 <div id="bar">
-  <span style="font-size:26px; cursor:pointer" onclick="pickImage()">📷</span>
+  <span class="icon" onclick="pickImage()">📷</span>
   <textarea id="msg" placeholder="Message…" rows="1"></textarea>
   <button onclick="send()">Send</button>
 </div>
@@ -256,9 +275,8 @@ button {
 
 <script>
 let replyData=null;
-let otherPersonReadTime = 0;
+let otherReadTime = 0;
 
-/* AUTH */
 const CHAT_PASSWORD="Chingam";
 if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
   if(prompt("Enter password:")!==CHAT_PASSWORD){
@@ -268,8 +286,25 @@ if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
   localStorage.setItem("chat_pass",CHAT_PASSWORD);
 }
 
-let username=localStorage.getItem("chat_name") || prompt("Your name?");
-localStorage.setItem("chat_name", username);
+let username=localStorage.getItem("chat_name");
+if(!username){
+  username=prompt("Your name?");
+  localStorage.setItem("chat_name",username||"Unknown");
+}
+
+const allowed=["haziq","kaunain"];
+const isAllowed=allowed.includes(username.toLowerCase());
+if(!isAllowed){
+  document.getElementById('msg').disabled=true;
+  document.getElementById('msg').placeholder="Read-only mode";
+}
+
+function nameClass(n){
+  n=(n||"").toLowerCase();
+  if(n.includes("haziq")) return "blue";
+  if(n.includes("kaunain")) return "pink";
+  return "";
+}
 
 firebase.initializeApp({
   apiKey:"AIzaSyB0FpYJytVZuHjtHjL5-RDK1MlIEEi6K6c",
@@ -279,42 +314,46 @@ firebase.initializeApp({
 const db=firebase.firestore();
 const del=firebase.firestore.FieldValue.delete();
 
-/* PRESENCE & READ TRACKING */
 const presence=db.collection("presence");
 function heartbeat(){
-  const now = Date.now();
   presence.doc(username).set({
     name:username,
-    time:now,
-    lastRead:now 
+    time:Date.now(),
+    lastRead: Date.now()
   },{merge:true});
 }
 heartbeat();
-setInterval(heartbeat, 5000);
+setInterval(heartbeat,5000);
 
 presence.onSnapshot(s=>{
+  let hTime=null,kTime=null;
   s.forEach(d=>{
     const data = d.data();
-    const n = data.name.toLowerCase();
+    const n=data.name.toLowerCase();
+    if(n.includes("haziq")) hTime=data.time;
+    if(n.includes("kaunain")) kTime=data.time;
     
-    const who = n.includes("haziq") ? "h" : (n.includes("kaunain") ? "k" : null);
-    if(who) {
-      const dot = document.getElementById("dot-"+who);
-      const label = document.getElementById("last-"+who);
-      const isOnline = (Date.now() - data.time) < 10000;
-      dot.classList.toggle("online", isOnline);
-      label.textContent = isOnline ? "online" : new Date(data.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-    }
-
-    if(!n.includes(username.toLowerCase())) {
-        otherPersonReadTime = data.lastRead || 0;
-        // Immediate re-render when other person reads
-        renderMessages(); 
+    if(!n.includes(username.toLowerCase())){
+      otherReadTime = data.lastRead || 0;
     }
   });
+  updatePresence("h",hTime);
+  updatePresence("k",kTime);
 });
 
-/* TYPING */
+function updatePresence(who,time){
+  const dot=document.getElementById("dot-"+who);
+  const label=document.getElementById("last-"+who);
+  dot.classList.remove("online","idle");
+  if(!time){ label.textContent="offline"; return; }
+  const age=Date.now()-time;
+  if(age<8000){ dot.classList.add("online"); label.textContent="online"; }
+  else if(age<20000){ dot.classList.add("idle"); label.textContent="idle"; }
+  else {
+    label.textContent=new Date(time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+  }
+}
+
 const msgInput = document.getElementById('msg');
 msgInput.addEventListener("input",()=>{
   db.collection("typing").doc("status").set({name:username,time:Date.now()},{merge:true});
@@ -326,12 +365,14 @@ db.collection("typing").doc("status").onSnapshot(d=>{
     ? `${v.name} is typing…` : "";
 });
 
-/* MESSAGING */
 function send(){
+  if(!isAllowed) return;
   const t=msgInput.value.trim();
   if(!t && !replyData) return;
+
   const payload={name:username,text:t,time:Date.now()};
   if(replyData){ payload.replyTo=replyData; cancelReply(); }
+  
   db.collection("messages").add(payload);
   msgInput.value="";
   msgInput.style.height = 'auto';
@@ -345,20 +386,15 @@ function cancelReply(){
 
 function pickImage(){ document.getElementById('imgPicker').click(); }
 document.getElementById('imgPicker').onchange=(e)=>{
+  if(!isAllowed) return;
   const f=e.target.files[0];
+  if(!f) return;
   const r=new FileReader();
-  r.onload=()=>db.collection("messages").add({name:username,image:r.result,time:Date.now()});
+  r.onload=()=>db.collection("messages").add({
+    name:username,image:r.result,time:Date.now()
+  });
   r.readAsDataURL(f);
 };
-
-/* RENDERING ENGINE */
-let cachedSnap = null;
-db.collection("messages").orderBy("time").onSnapshot(s=>{
-    cachedSnap = s;
-    renderMessages();
-    // Update my read time whenever new messages arrive
-    heartbeat(); 
-});
 
 function sameDay(a,b){ return a.toDateString() === b.toDateString(); }
 function dayLabel(d){
@@ -369,14 +405,12 @@ function dayLabel(d){
   return d.toLocaleDateString([], {month:'short', day:'numeric'});
 }
 
-function renderMessages() {
-  if(!cachedSnap) return;
+db.collection("messages").orderBy("time").onSnapshot(s=>{
   const chat = document.getElementById('chat');
-  const wasAtBottom = chat.scrollHeight - chat.scrollTop <= chat.clientHeight + 100;
   chat.innerHTML="";
   let last=null;
 
-  cachedSnap.forEach(doc=>{
+  s.forEach(doc=>{
     const d=doc.data();
     const dt=new Date(d.time);
 
@@ -392,8 +426,7 @@ function renderMessages() {
     b.className="msg"+(d.name===username?" me":"");
 
     const n=document.createElement("div");
-    const nameClass = d.name.toLowerCase().includes('haziq') ? 'blue' : 'pink';
-    n.className="name "+nameClass;
+    n.className="name "+nameClass(d.name);
     n.textContent=d.name;
     b.appendChild(n);
 
@@ -432,31 +465,36 @@ function renderMessages() {
 
     const act=document.createElement("div");
     act.className="actions";
-    
-    const picker=document.createElement("div");
-    picker.className="reaction-picker";
-    ["😘","🤍","❤️","😂","🖕","💀"].forEach(e=>{
-      const s=document.createElement("span");
-      s.textContent=e;
-      s.onclick=()=>{
-        const cur=(d.reactions||{})[username];
-        if(cur===e){ doc.ref.update({["reactions."+username]:del}); }
-        else{ doc.ref.update({["reactions."+username]:e}); }
-      };
-      picker.appendChild(s);
-    });
-    act.appendChild(picker);
 
-    const reply=document.createElement("div");
-    reply.className="reply-btn";
-    reply.textContent="Reply";
-    reply.onclick=()=>{
-      replyData={name:d.name,text:d.text||"[media]"};
-      document.getElementById("replyName").textContent=d.name;
-      document.getElementById("replyBar").style.display="flex";
-      msgInput.focus();
-    };
-    act.appendChild(reply);
+    if(isAllowed){
+      const picker=document.createElement("div");
+      picker.className="reaction-picker";
+      ["😘","🤍","❤️","😂","🖕","💀"].forEach(e=>{
+        const s=document.createElement("span");
+        s.textContent=e;
+        s.onclick=()=>{
+          const cur=(d.reactions||{})[username];
+          if(cur===e){
+            doc.ref.update({["reactions."+username]:del});
+          }else{
+            doc.ref.update({["reactions."+username]:e});
+          }
+        };
+        picker.appendChild(s);
+      });
+      act.appendChild(picker);
+
+      const reply=document.createElement("div");
+      reply.className="reply-btn";
+      reply.textContent="Reply";
+      reply.onclick=()=>{
+        replyData={name:d.name,text:d.text||"[media]"};
+        document.getElementById("replyName").textContent=d.name;
+        document.getElementById("replyBar").style.display="flex";
+        msgInput.focus();
+      };
+      act.appendChild(reply);
+    }
 
     b.appendChild(act);
     b.onclick=(e)=>{
@@ -467,14 +505,15 @@ function renderMessages() {
 
     const tmRow=document.createElement("div");
     tmRow.className="time-row";
+    
     const tm=document.createElement("div");
     tm.className="time";
     tm.textContent=dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
     
     const status = document.createElement("div");
-    const isRead = d.time <= otherPersonReadTime;
+    const isRead = d.time <= otherReadTime;
     status.className = "status" + (isRead ? " read" : " sent");
-    status.innerHTML = isRead ? "✓✓" : "✓"; 
+    status.innerHTML = isRead ? "✓✓" : "✓";
     
     tmRow.appendChild(tm);
     tmRow.appendChild(status);
@@ -483,13 +522,14 @@ function renderMessages() {
     chat.appendChild(b);
   });
 
-  if(wasAtBottom) chat.scrollTop = chat.scrollHeight;
-}
+  chat.scrollTop=chat.scrollHeight;
+});
 
 msgInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = (this.scrollHeight) + 'px';
 });
 </script>
+
 </body>
 </html>
