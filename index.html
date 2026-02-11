@@ -20,7 +20,6 @@ body{
   flex-direction:column;
   color:white;
   background:#0f2027;
-  /* Substrate for the blur effect */
   background-attachment: fixed;
 }
 
@@ -31,7 +30,7 @@ body::before {
   top: 0; left: 0; right: 0; bottom: 0;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Ctext x='30' y='60' font-size='24' fill='rgba(255,140,160,0.12)'%3E❤%3C/text%3E%3Ctext x='110' y='130' font-size='20' fill='rgba(255,140,160,0.1)'%3E❤%3C/text%3E%3C/svg%3E");
   background-repeat:repeat;
-  filter: blur(1.5px); /* Very subtle blur */
+  filter: blur(1.5px);
   z-index: -1;
 }
 
@@ -57,11 +56,10 @@ header{
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-/* H & K TEXT PINK */
 header span {
   flex:1;
   text-align:center;
-  color: #ff8fb1; /* Pink color */
+  color: #ff8fb1;
   text-shadow: 0 0 10px rgba(255, 143, 177, 0.3);
 }
 
@@ -102,12 +100,28 @@ header span {
 .name.blue{color:#4fc3ff}
 .name.pink{color:#ff8fb1}
 
+/* NEW: Layout for Time + Read Receipt */
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .time{
   font-size:10px;
   opacity:0.6;
-  text-align:right;
-  margin-top: 4px;
 }
+
+/* NEW: Read Receipt Status Styles */
+.status {
+  font-size: 12px;
+  line-height: 1;
+  font-weight: bold;
+}
+.status.sent { color: rgba(255,255,255,0.4); }
+.status.read { color: #4fc3ff; } /* Blue for read */
 
 .img{
   max-width:100%;
@@ -183,7 +197,6 @@ header span {
   min-height:16px;
 }
 
-/* MATCHED TO SCREENSHOT */
 #bar {
   display: flex;
   align-items: center;
@@ -219,7 +232,7 @@ header span {
 }
 
 button {
-  background: #f8a5c2; /* Soft pink oval */
+  background: #f8a5c2;
   color: white;
   border: none;
   border-radius: 30px;
@@ -268,6 +281,10 @@ button {
 
 <script>
 let replyData=null;
+// GLOBAL VARIABLE TO TRACK OTHER PERSON'S READ TIME
+let otherReadTime = 0;
+// CACHE MESSAGES TO ALLOW RE-RENDERING ON READ UPDATE
+let cachedMessages = [];
 
 const CHAT_PASSWORD="Chingam";
 if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
@@ -277,8 +294,6 @@ if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
   }
   localStorage.setItem("chat_pass",CHAT_PASSWORD);
 }
-
-const STARTUP_READ_TIME = Number(localStorage.getItem("last_read_time") || 0);
 
 let username=localStorage.getItem("chat_name");
 if(!username){
@@ -309,18 +324,40 @@ const db=firebase.firestore();
 const del=firebase.firestore.FieldValue.delete();
 
 const presence=db.collection("presence");
+
+// UPDATED: Heartbeat now includes 'lastRead' timestamp
 function heartbeat(){
-  presence.doc(username).set({name:username,time:Date.now()},{merge:true});
+  const now = Date.now();
+  presence.doc(username).set({
+    name:username,
+    time:now,
+    lastRead:now 
+  },{merge:true});
 }
 heartbeat();
 setInterval(heartbeat,5000);
 
+// UPDATED: Presence listener extracts 'otherReadTime' and triggers re-render
 presence.onSnapshot(s=>{
   let hTime=null,kTime=null;
   s.forEach(d=>{
-    const n=d.data().name.toLowerCase();
-    if(n.includes("haziq")) hTime=d.data().time;
-    if(n.includes("kaunain")) kTime=d.data().time;
+    const data = d.data();
+    const n=data.name.toLowerCase();
+    
+    // Update Header Status
+    if(n.includes("haziq")) hTime=data.time;
+    if(n.includes("kaunain")) kTime=data.time;
+
+    // Capture the OTHER person's read time
+    if(!n.includes(username.toLowerCase())){
+       const prevTime = otherReadTime;
+       otherReadTime = data.lastRead || 0;
+       // Only re-render if the time changed to avoid flicker, 
+       // but ensure we render if we haven't yet.
+       if(otherReadTime > prevTime && cachedMessages.length > 0){
+         renderMessages(cachedMessages);
+       }
+    }
   });
   updatePresence("h",hTime);
   updatePresence("k",kTime);
@@ -390,13 +427,26 @@ function dayLabel(d){
   return d.toLocaleDateString([], {month:'short', day:'numeric'});
 }
 
+// UPDATED: Logic extracted to a function to allow calling from Presence listener
 db.collection("messages").orderBy("time").onSnapshot(s=>{
+  cachedMessages = [];
+  s.forEach(doc => {
+     cachedMessages.push({ id: doc.id, ...doc.data(), ref: doc.ref });
+  });
+  renderMessages(cachedMessages);
+  // Force update my read status when new messages arrive
+  heartbeat(); 
+});
+
+function renderMessages(messages){
   const chat = document.getElementById('chat');
+  // Auto-scroll logic: only if near bottom
+  const wasAtBottom = chat.scrollHeight - chat.scrollTop <= chat.clientHeight + 150;
+  
   chat.innerHTML="";
   let last=null;
 
-  s.forEach(doc=>{
-    const d=doc.data();
+  messages.forEach(d =>{
     const dt=new Date(d.time);
 
     if(!last || !sameDay(last,dt)){
@@ -460,9 +510,9 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
         s.onclick=()=>{
           const cur=(d.reactions||{})[username];
           if(cur===e){
-            doc.ref.update({["reactions."+username]:del});
+            d.ref.update({["reactions."+username]:del});
           }else{
-            doc.ref.update({["reactions."+username]:e});
+            d.ref.update({["reactions."+username]:e});
           }
         };
         picker.appendChild(s);
@@ -488,17 +538,30 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
       }
     };
 
+    // UPDATED: Time + Read Receipt Logic
+    const metaRow = document.createElement("div");
+    metaRow.className = "meta-row";
+
     const tm=document.createElement("div");
     tm.className="time";
     tm.textContent=dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-    b.appendChild(tm);
+    metaRow.appendChild(tm);
 
+    // Show ticks ONLY if the message is from me
+    if(d.name === username){
+        const status = document.createElement("div");
+        const isRead = d.time <= otherReadTime;
+        status.className = "status " + (isRead ? "read" : "sent");
+        status.textContent = isRead ? "✓✓" : "✓";
+        metaRow.appendChild(status);
+    }
+
+    b.appendChild(metaRow);
     chat.appendChild(b);
   });
 
-  chat.scrollTop=chat.scrollHeight;
-  localStorage.setItem("last_read_time", Date.now());
-});
+  if(wasAtBottom) chat.scrollTop=chat.scrollHeight;
+}
 
 msgInput.addEventListener('input', function() {
   this.style.height = 'auto';
