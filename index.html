@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>H & K</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, interactive-widget=resizes-content, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,20 +12,15 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <style>
-/* --- LAYOUT FIXES START --- */
-:root {
-  /* Define safe area variables for cleaner usage */
-  --sat: env(safe-area-inset-top);
-  --sab: env(safe-area-inset-bottom);
-}
-
+/* CORE LAYOUT FIX 
+   We rely on JavaScript to set the height, so we use simpler CSS here.
+*/
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%; /* Fallback */
-  height: 100dvh; /* Dynamic height for mobile browsers */
-  overflow: hidden; /* STRICTLY PREVENT PAGE SCROLL */
+  overflow: hidden; /* Prevent native scrolling */
   position: fixed; /* Lock body in place */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: white;
@@ -44,20 +39,22 @@ body::before {
   pointer-events: none;
 }
 
-/* Main App Container */
-#app-layout {
+/* THE APP CONTAINER
+   The JS will update this element's height instantly when keyboard opens.
+*/
+#app-view {
   display: flex;
   flex-direction: column;
-  height: 100%;
   width: 100%;
+  height: 100%; /* Default to 100% until JS takes over */
 }
 
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* FIX: Add top padding for Dynamic Island + 10px breathing room */
-  padding: calc(var(--sat) + 10px) 14px 14px 14px;
+  /* Add safe area padding for the notch */
+  padding: calc(14px + env(safe-area-inset-top)) 14px 14px 14px;
   font-weight: 600;
   background: rgba(11, 26, 32, 0.95);
   backdrop-filter: blur(15px);
@@ -78,20 +75,20 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
-/* FIX: Input bar lifted up */
+/* Input Bar Styling */
 #bar {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
   background: #0b1a20;
-  /* FIX: Add bottom padding for Home Indicator + 15px extra lift */
-  padding-bottom: calc(var(--sab) + 15px);
+  /* Add safe area padding for home bar + extra lift */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 20;
   flex-shrink: 0;
 }
-/* --- LAYOUT FIXES END --- */
 
+/* HEADER TEXT */
 header span {
   flex: 1;
   text-align: center;
@@ -145,7 +142,6 @@ header span {
 }
 
 .time { font-size: 10px; opacity: 0.6; }
-
 .status { font-size: 12px; line-height: 1; font-weight: bold; }
 .status.sent { color: rgba(255, 255, 255, 0.4); }
 .status.read { color: #4fc3ff; }
@@ -217,7 +213,6 @@ header span {
   min-height: 24px;
   max-height: 120px;
 }
-
 #msg::placeholder { color: #a4b0be; }
 
 .icon { font-size: 26px; cursor: pointer; display: flex; align-items: center; }
@@ -237,16 +232,14 @@ button {
 
 <body>
 
-<div id="app-layout">
+<div id="app-view">
 
   <header>
     <div class="presence">
       <div id="dot-h" class="dot blue"></div>
       <div id="last-h">offline</div>
     </div>
-
     <span>💗 H & K</span>
-
     <div class="presence">
       <div id="dot-k" class="dot pink"></div>
       <div id="last-k">offline</div>
@@ -275,6 +268,39 @@ button {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
+/* =========================================
+   KEYBOARD VIEWPORT FIX (THE MAGIC PART)
+   ========================================= */
+const viewport = window.visualViewport;
+const appView = document.getElementById('app-view');
+
+function resizeLayout() {
+  if (!viewport) return;
+  // This manually sets the app height to visible screen space
+  // This forces the header down when the keyboard pushes up
+  appView.style.height = `${viewport.height}px`;
+  
+  // Scroll to bottom if keyboard opened
+  const chat = document.getElementById('chat');
+  chat.scrollTop = chat.scrollHeight;
+  
+  // Reset window scroll to keep header pinned top
+  window.scrollTo(0, 0);
+}
+
+// Listen for keyboard open/close
+if (viewport) {
+  viewport.addEventListener('resize', resizeLayout);
+  viewport.addEventListener('scroll', resizeLayout);
+}
+// Also run on load
+window.addEventListener('load', resizeLayout);
+
+
+/* =========================================
+   BASELINE LOGIC BELOW
+   ========================================= */
+
 let replyData=null;
 let otherReadTime = 0;
 let cachedMessages = [];
