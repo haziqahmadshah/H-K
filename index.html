@@ -48,8 +48,8 @@ body::before {
   right: 0;
   bottom: 0; 
   width: 100%;
-  /* Ensures container covers the full screen including system bars */
-  height: 100vh;
+  height: 100%;
+  z-index: 1;
 }
 
 header {
@@ -84,14 +84,9 @@ header {
   align-items: center;
   gap: 12px;
   background: #0b1a20;
-  
-  /* REMOVED safe-area-inset-bottom to make it flush */
-  padding: 10px 14px 10px 14px; 
-  
-  /* Topmost layer insurance */
-  z-index: 9999;
+  padding: 10px 14px; /* Flush to bottom */
+  z-index: 9999; /* Highest layer */
   position: relative; 
-  
   flex-shrink: 0;
   width: 100%;
   box-sizing: border-box;
@@ -282,13 +277,10 @@ button {
    KEYBOARD VIEWPORT FIX
    ========================================= */
 const viewport = window.visualViewport;
-const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  // Commented out manual height assignment to let the fixed bottom layout work
-  // appView.style.height = `${viewport.height}px`;
-  
+  // Removed appView.style.height assignment to stop invisible resizing
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
   window.scrollTo(0, 0);
