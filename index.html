@@ -77,23 +77,22 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
-//* Input Bar Styling */
+/* Input Bar Styling */
 #bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #0b1a20;
+  background: #0b1a20; /* Ensures the dark background remains visible */
   
-  /* --- UPDATED: Removed safe-area-inset-bottom to stay flush --- */
-  padding-top: 10px;
-  padding-left: 14px;
-  padding-right: 14px;
-  padding-bottom: 10px; 
-  /* ----------------------------------------------------------- */
-
+  /* Fixed padding to stay flush at the bottom without safe area gaps */
+  padding: 10px 14px; 
+  
   z-index: 20;
   flex-shrink: 0;
+  width: 100%;       /* Ensures background spans the full width */
+  box-sizing: border-box; /* Prevents horizontal scroll by including padding in width */
 }
+
 
 /* HEADER TEXT */
 header span {
