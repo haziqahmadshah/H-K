@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>H & K</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
 
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <style>
-/* CORE LAYOUT FIX */
+/* CORE LAYOUT */
 html, body {
   margin: 0;
   padding: 0;
@@ -37,7 +37,7 @@ body::before {
   pointer-events: none;
 }
 
-/* THE APP CONTAINER */
+/* APP CONTAINER */
 #app-view {
   display: flex;
   flex-direction: column;
@@ -49,8 +49,14 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* MOVED UP: Removed extra pixels, now sits flush with safe area */
-  padding: env(safe-area-inset-top) 14px 10px 14px;
+  /* MOVED UP: Subtracted 10px from the safe area. 
+     This pulls the text UP closer to the Dynamic Island/Notch.
+  */
+  padding-top: calc(env(safe-area-inset-top) - 10px);
+  padding-bottom: 8px; /* Tighter bottom spacing */
+  padding-left: 14px;
+  padding-right: 14px;
+  
   font-weight: 600;
   background: rgba(11, 26, 32, 0.95);
   backdrop-filter: blur(15px);
@@ -78,7 +84,8 @@ header {
   gap: 12px;
   padding: 10px 14px;
   background: #0b1a20;
-  padding-bottom: calc(2px + env(safe-area-inset-bottom));
+  /* Uses standard safe area for bottom */
+  padding-bottom: env(safe-area-inset-bottom);
   z-index: 20;
   flex-shrink: 0;
 }
@@ -207,7 +214,8 @@ header span {
   resize: none;
   min-height: 24px;
   max-height: 120px;
-  margin-bottom: 2px;
+  /* MOVED UP: Extra margin to lift the chatbox inside the bar */
+  margin-bottom: 8px; 
 }
 #msg::placeholder { color: #a4b0be; }
 
@@ -265,36 +273,29 @@ button {
 
 <script>
 /* =========================================
-   KEYBOARD VIEWPORT FIX (THE MAGIC PART)
+   KEYBOARD VIEWPORT FIX
    ========================================= */
 const viewport = window.visualViewport;
 const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  // This manually sets the app height to visible screen space
-  // This forces the header down when the keyboard pushes up
   appView.style.height = `${viewport.height}px`;
   
-  // Scroll to bottom if keyboard opened
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
-  
-  // Reset window scroll to keep header pinned top
   window.scrollTo(0, 0);
 }
 
-// Listen for keyboard open/close
 if (viewport) {
   viewport.addEventListener('resize', resizeLayout);
   viewport.addEventListener('scroll', resizeLayout);
 }
-// Also run on load
 window.addEventListener('load', resizeLayout);
 
 
 /* =========================================
-   BASELINE LOGIC BELOW
+   BASELINE LOGIC
    ========================================= */
 
 let replyData=null;
