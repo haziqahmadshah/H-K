@@ -52,7 +52,7 @@ header {
   justify-content: space-between;
   
   /* --- FIXED: Safe Area for Notch/Status Bar --- */
-  padding-top: calc(env(safe-area-inset-top));
+  padding-top: calc(env(safe-area-inset-top) + 5px);
   padding-bottom: 10px;
   padding-left: 14px;
   padding-right: 14px;
@@ -77,19 +77,19 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Input Bar Styling */
+//* Input Bar Styling */
 #bar {
   display: flex;
   align-items: center;
   gap: 12px;
   background: #0b1a20;
   
-  /* --- FIXED: Safe Area for Bottom Home Indicator --- */
+  /* --- UPDATED: Removed safe-area-inset-bottom to stay flush --- */
   padding-top: 10px;
   padding-left: 14px;
   padding-right: 14px;
-  padding-bottom: 0px;
-  /* ------------------------------------------------ */
+  padding-bottom: 10px; 
+  /* ----------------------------------------------------------- */
 
   z-index: 20;
   flex-shrink: 0;
