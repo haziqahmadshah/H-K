@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>H & K</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
+<meta name="theme-color" content="#0b1a20">
 
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -49,18 +50,11 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* MOVED UP: Subtracted 10px from the safe area. 
-     This pulls the text UP closer to the Dynamic Island/Notch.
-  */
-  padding-top: calc(env(safe-area-inset-top) - 10px);
-  padding-bottom: 8px; /* Tighter bottom spacing */
-  padding-left: 14px;
-  padding-right: 14px;
-  
+  /* MODIFIED: Removed safe-area calculation. Minimal fixed padding. */
+  padding: 10px 14px;
   font-weight: 600;
-  background: rgba(11, 26, 32, 0.95);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  /* MODIFIED: Solid background to hide hearts/blur in status bar area */
+  background: #0b1a20; 
   z-index: 20;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
@@ -84,7 +78,7 @@ header {
   gap: 12px;
   padding: 10px 14px;
   background: #0b1a20;
-  /* Uses standard safe area for bottom */
+  /* Keep safe area for bottom to prevent overlap with home indicator */
   padding-bottom: env(safe-area-inset-bottom);
   z-index: 20;
   flex-shrink: 0;
@@ -214,7 +208,6 @@ header span {
   resize: none;
   min-height: 24px;
   max-height: 120px;
-  /* MOVED UP: Extra margin to lift the chatbox inside the bar */
   margin-bottom: 8px; 
 }
 #msg::placeholder { color: #a4b0be; }
