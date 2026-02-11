@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>H & K</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,19 +12,19 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 
 <style>
-/* --- 1. CORE LAYOUT LOCK --- */
+/* CORE LAYOUT FIX 
+   We rely on JavaScript to set the height, so we use simpler CSS here.
+*/
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
-  overflow: hidden; /* Stops the browser from scrolling the body */
-  background: #0f2027;
+  height: 100%; /* Fallback */
+  overflow: hidden; /* Prevent native scrolling */
+  position: fixed; /* Lock body in place */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: white;
-  position: fixed; /* Freezes the body in place */
-  top: 0;
-  left: 0;
+  background: #0f2027;
 }
 
 /* Background Effect */
@@ -39,29 +39,22 @@ body::before {
   pointer-events: none;
 }
 
-/* --- 2. THE APP CONTAINER --- */
-/* This container is resized by JS to match the visible screen exactly */
+/* THE APP CONTAINER
+   The JS will update this element's height instantly when keyboard opens.
+*/
 #app-view {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%; /* JS will override this to visualViewport height */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  width: 100%;
+  height: 100%; /* Default to 100% until JS takes over */
 }
 
-/* --- 3. HEADER (Flush with Dynamic Island) --- */
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* FLUSH FIX: Only use the safe area, no extra pixels */
-  padding-top: env(safe-area-inset-top); 
-  padding-left: 14px;
-  padding-right: 14px;
-  padding-bottom: 10px; /* Slight breathing room for content */
+  /* Add safe area padding for the notch */
+  padding: calc(14px + env(safe-area-inset-top)) 14px 14px 14px;
   font-weight: 600;
   background: rgba(11, 26, 32, 0.95);
   backdrop-filter: blur(15px);
@@ -71,14 +64,6 @@ header {
   flex-shrink: 0;
 }
 
-header span {
-  flex: 1;
-  text-align: center;
-  color: #ff8fb1;
-  text-shadow: 0 0 10px rgba(255, 143, 177, 0.3);
-}
-
-/* --- 4. CHAT AREA --- */
 #chat {
   flex: 1;
   overflow-y: auto;
@@ -90,45 +75,47 @@ header span {
   -webkit-overflow-scrolling: touch;
 }
 
-/* --- 5. INPUT BAR (Flush with Home Indicator) --- */
+/* Input Bar Styling */
 #bar {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   background: #0b1a20;
-  /* FLUSH FIX: Only use safe area + very slight padding for aesthetics */
-  padding-bottom: calc(5px + env(safe-area-inset-bottom));
+  /* Add safe area padding for home bar + extra lift */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 20;
   flex-shrink: 0;
 }
 
-#msg {
+/* HEADER TEXT */
+header span {
   flex: 1;
-  background: #1e272e;
-  color: #ffffff;
-  border: none;
-  border-radius: 40px;
-  padding: 12px 18px;
-  font-size: 16px;
-  outline: none;
-  resize: none;
-  min-height: 24px;
-  max-height: 120px;
-  /* CHATBOX LIFT: A tiny margin bottom to lift it off the bar edge */
-  margin-bottom: 2px;
+  text-align: center;
+  color: #ff8fb1;
+  text-shadow: 0 0 10px rgba(255, 143, 177, 0.3);
 }
-#msg::placeholder { color: #a4b0be; }
 
-/* --- OTHER UI ELEMENTS --- */
-.presence { display: flex; flex-direction: column; align-items: center; font-size: 10px; width: 60px; }
+.presence {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+  width: 60px;
+}
+
 .dot { width: 10px; height: 10px; border-radius: 50%; opacity: 0.3; margin-bottom: 3px; }
 .dot.blue { background: #4fc3ff; }
 .dot.pink { background: #ff8fb1; }
 .dot.online { opacity: 1; box-shadow: 0 0 6px currentColor, 0 0 12px currentColor; }
 .dot.idle { opacity: 0.6; }
 
-.day { align-self: center; font-size: 12px; opacity: 0.6; margin: 5px 0; }
+.day {
+  align-self: center;
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 5px 0;
+}
 
 .msg {
   background: #203a43;
@@ -146,7 +133,14 @@ header span {
 .name.blue { color: #4fc3ff; }
 .name.pink { color: #ff8fb1; }
 
-.meta-row { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 4px; }
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .time { font-size: 10px; opacity: 0.6; }
 .status { font-size: 12px; line-height: 1; font-weight: bold; }
 .status.sent { color: rgba(255, 255, 255, 0.4); }
@@ -163,7 +157,15 @@ header span {
   border-radius: 4px;
 }
 
-.actions { display: none; flex-direction: column; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.actions {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .reaction-strip { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .reaction-chip { background: rgba(255, 255, 255, 0.15); padding: 2px 8px; border-radius: 12px; font-size: 14px; }
 .reaction-picker { display: flex; gap: 12px; justify-content: center; }
@@ -190,7 +192,28 @@ header span {
 }
 #replyBar b { color: #ff8fb1; }
 
-#typing { font-size: 12px; opacity: 0.6; padding: 4px 14px; min-height: 16px; flex-shrink: 0; }
+#typing {
+  font-size: 12px;
+  opacity: 0.6;
+  padding: 4px 14px;
+  min-height: 16px;
+  flex-shrink: 0;
+}
+
+#msg {
+  flex: 1;
+  background: #1e272e;
+  color: #ffffff;
+  border: none;
+  border-radius: 40px;
+  padding: 10px 18px;
+  font-size: 16px;
+  outline: none;
+  resize: none;
+  min-height: 24px;
+  max-height: 120px;
+}
+#msg::placeholder { color: #a4b0be; }
 
 .icon { font-size: 26px; cursor: pointer; display: flex; align-items: center; }
 
@@ -246,32 +269,36 @@ button {
 
 <script>
 /* =========================================
-   KEYBOARD VIEWPORT LOGIC (iOS FIX)
+   KEYBOARD VIEWPORT FIX (THE MAGIC PART)
    ========================================= */
+const viewport = window.visualViewport;
 const appView = document.getElementById('app-view');
-const chatView = document.getElementById('chat');
 
-function handleResize() {
-  if (window.visualViewport) {
-    // 1. Force the app container to match the VISIBLE screen height exactly
-    appView.style.height = `${window.visualViewport.height}px`;
-    // 2. Force the app to scroll to top (0,0) to fight the browser push
-    window.scrollTo(0, 0);
-    // 3. Keep chat scrolled to bottom
-    chatView.scrollTop = chatView.scrollHeight;
-  }
+function resizeLayout() {
+  if (!viewport) return;
+  // This manually sets the app height to visible screen space
+  // This forces the header down when the keyboard pushes up
+  appView.style.height = `${viewport.height}px`;
+  
+  // Scroll to bottom if keyboard opened
+  const chat = document.getElementById('chat');
+  chat.scrollTop = chat.scrollHeight;
+  
+  // Reset window scroll to keep header pinned top
+  window.scrollTo(0, 0);
 }
 
-// Add listeners to the Visual Viewport API
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', handleResize);
-  window.visualViewport.addEventListener('scroll', handleResize); // Double protection
+// Listen for keyboard open/close
+if (viewport) {
+  viewport.addEventListener('resize', resizeLayout);
+  viewport.addEventListener('scroll', resizeLayout);
 }
-window.addEventListener('load', handleResize);
+// Also run on load
+window.addEventListener('load', resizeLayout);
 
 
 /* =========================================
-   BASELINE LOGIC
+   BASELINE LOGIC BELOW
    ========================================= */
 
 let replyData=null;
