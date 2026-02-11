@@ -263,7 +263,7 @@ if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
   localStorage.setItem("chat_pass",CHAT_PASSWORD);
 }
 
-/* FEATURE 3: UNREAD STATE (FIXED) */
+/* FEATURE 3: UNREAD STATE */
 // We capture this ONCE when the app loads
 const STARTUP_READ_TIME = Number(localStorage.getItem("last_read_time") || 0);
 
@@ -408,7 +408,6 @@ function dayLabel(d){
 db.collection("messages").orderBy("time").onSnapshot(s=>{
   chat.innerHTML="";
   
-  // FIXED: Reset this logic every time the screen redraws
   let unreadInserted = false;
   let last=null;
 
@@ -416,9 +415,9 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
     const d=doc.data();
     const dt=new Date(d.time);
 
-    /* FEATURE 3: UNREAD DIVIDER */
-    // Compare message time to the STARTUP time, not the "live" time
-    if(!unreadInserted && d.time > STARTUP_READ_TIME && STARTUP_READ_TIME > 0){
+    /* FEATURE 3: UNREAD DIVIDER (FIXED) */
+    // Logic: Is it new? AND Is it NOT from me?
+    if(!unreadInserted && d.time > STARTUP_READ_TIME && STARTUP_READ_TIME > 0 && d.name !== username){
       const u=document.createElement("div");
       u.className="unread-divider";
       u.textContent="New messages";
