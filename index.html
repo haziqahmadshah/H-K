@@ -43,8 +43,9 @@ body::before {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh; 
-  position: fixed;
+  /* This height is controlled by JS to match the visible area exactly */
+  height: 100%; 
+  position: absolute;
   top: 0;
   left: 0;
 }
@@ -75,29 +76,34 @@ header {
   -webkit-overflow-scrolling: touch;
 }
 
-/* --- INTEGRATED FOOTER FROM OLD CODE --- */
+/* --- RESTORED FOOTER FROM OLD CODE --- */
 #bar {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px;
-  background: rgba(11, 26, 32, 0.95);
-  z-index: 100;
+  background: rgba(11,26,32,0.95);
   flex-shrink: 0;
+  z-index: 100;
+  /* Ensures it sits at the bottom of the flex container */
 }
 
 #msg {
   flex: 1;
   min-height: 42px;
-  max-height: 120px;
   resize: none;
   padding: 10px 14px;
   border-radius: 18px;
   border: none;
   font-size: 16px;
+  background: white; /* Or #1e272e if you want dark mode input, old code implied default/white */
+  color: black;      /* Adjust to white if using dark background */
+  font-family: inherit;
+}
+/* Re-applying dark theme to input based on your screenshots */
+#msg {
   background: #1e272e;
   color: white;
-  outline: none;
 }
 
 .icon {
@@ -266,14 +272,22 @@ header span {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
+/* =========================================
+   CRITICAL VIEWPORT FIX
+   This ensures the footer sits exactly above the 
+   keyboard or at the bottom of the screen.
+   ========================================= */
 const viewport = window.visualViewport;
 const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
+  // This physically resizes the app container to match the visible screen
   appView.style.height = `${viewport.height}px`;
+  
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
+  // Scroll to top to prevent body scroll
   window.scrollTo(0, 0);
 }
 
@@ -283,7 +297,11 @@ if (viewport) {
 }
 window.addEventListener('load', resizeLayout);
 
-/* BASELINE LOGIC */
+
+/* =========================================
+   APP LOGIC
+   ========================================= */
+
 let replyData=null;
 let otherReadTime = 0;
 let cachedMessages = [];
@@ -343,10 +361,16 @@ presence.onSnapshot(s=>{
   s.forEach(d=>{
     const data = d.data();
     const n=data.name.toLowerCase();
+    
     if(n.includes("haziq")) hTime=data.time;
     if(n.includes("kaunain")) kTime=data.time;
+
     if(!n.includes(username.toLowerCase())){
+       const prevTime = otherReadTime;
        otherReadTime = data.lastRead || 0;
+       if(otherReadTime > prevTime && cachedMessages.length > 0){
+         renderMessages(cachedMessages);
+       }
     }
   });
   updatePresence("h",hTime);
@@ -381,8 +405,10 @@ function send(){
   if(!isAllowed) return;
   const t=msgInput.value.trim();
   if(!t && !replyData) return;
+
   const payload={name:username,text:t,time:Date.now()};
   if(replyData){ payload.replyTo=replyData; cancelReply(); }
+  
   db.collection("messages").add(payload);
   msgInput.value="";
   msgInput.style.height = 'auto';
@@ -417,7 +443,9 @@ function dayLabel(d){
 
 db.collection("messages").orderBy("time").onSnapshot(s=>{
   cachedMessages = [];
-  s.forEach(doc => { cachedMessages.push({ id: doc.id, ...doc.data(), ref: doc.ref }); });
+  s.forEach(doc => {
+     cachedMessages.push({ id: doc.id, ...doc.data(), ref: doc.ref });
+  });
   renderMessages(cachedMessages);
   heartbeat(); 
 });
@@ -425,60 +453,86 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
 function renderMessages(messages){
   const chat = document.getElementById('chat');
   const wasAtBottom = chat.scrollHeight - chat.scrollTop <= chat.clientHeight + 150;
+  
   chat.innerHTML="";
   let last=null;
 
   messages.forEach(d =>{
     const dt=new Date(d.time);
+
     if(!last || !sameDay(last,dt)){
       const sep=document.createElement("div");
-      sep.className="day"; sep.textContent=dayLabel(dt);
-      chat.appendChild(sep); last=dt;
+      sep.className="day";
+      sep.textContent=dayLabel(dt);
+      chat.appendChild(sep);
+      last=dt;
     }
+
     const b=document.createElement("div");
     b.className="msg"+(d.name===username?" me":"");
+
     const n=document.createElement("div");
     n.className="name "+nameClass(d.name);
     n.textContent=d.name;
     b.appendChild(n);
+
     if(d.replyTo){
       const rp=document.createElement("div");
-      rp.className="reply-preview"; rp.textContent=`${d.replyTo.name}: ${d.replyTo.text}`;
+      rp.className="reply-preview";
+      rp.textContent=`${d.replyTo.name}: ${d.replyTo.text}`;
       b.appendChild(rp);
     }
+
     if(d.text){
       const txt = document.createElement("div");
-      txt.style.whiteSpace = "pre-wrap"; txt.textContent = d.text;
+      txt.style.whiteSpace = "pre-wrap";
+      txt.textContent = d.text;
       b.appendChild(txt);
     }
+
     if(d.image){
-      const i=document.createElement("img"); i.src=d.image; i.className="img";
+      const i=document.createElement("img");
+      i.src=d.image;
+      i.className="img";
       b.appendChild(i);
     }
+
     if(d.reactions){
-      const rs=document.createElement("div"); rs.className="reaction-strip";
+      const rs=document.createElement("div");
+      rs.className="reaction-strip";
       Object.values(d.reactions).forEach(e=>{
-        const c=document.createElement("div"); c.className="reaction-chip"; c.textContent=e;
+        const c=document.createElement("div");
+        c.className="reaction-chip";
+        c.textContent=e;
         rs.appendChild(c);
       });
       b.appendChild(rs);
     }
+
     const act=document.createElement("div");
     act.className="actions";
+
     if(isAllowed){
-      const picker=document.createElement("div"); picker.className="reaction-picker";
+      const picker=document.createElement("div");
+      picker.className="reaction-picker";
       ["😘","🤍","❤️","😂","🖕","💀"].forEach(e=>{
-        const s=document.createElement("span"); s.textContent=e;
+        const s=document.createElement("span");
+        s.textContent=e;
         s.onclick=()=>{
           const cur=(d.reactions||{})[username];
-          if(cur===e){ d.ref.update({["reactions."+username]:del}); }
-          else{ d.ref.update({["reactions."+username]:e}); }
+          if(cur===e){
+            d.ref.update({["reactions."+username]:del});
+          }else{
+            d.ref.update({["reactions."+username]:e});
+          }
         };
         picker.appendChild(s);
       });
       act.appendChild(picker);
+
       const reply=document.createElement("div");
-      reply.className="reply-btn"; reply.textContent="Reply";
+      reply.className="reply-btn";
+      reply.textContent="Reply";
       reply.onclick=()=>{
         replyData={name:d.name,text:d.text||"[media]"};
         document.getElementById("replyName").textContent=d.name;
@@ -487,16 +541,22 @@ function renderMessages(messages){
       };
       act.appendChild(reply);
     }
+
     b.appendChild(act);
     b.onclick=(e)=>{
       if(e.target.tagName !== 'SPAN') {
         act.style.display = (act.style.display==="flex" ? "none" : "flex");
       }
     };
-    const metaRow = document.createElement("div"); metaRow.className = "meta-row";
-    const tm=document.createElement("div"); tm.className="time";
+
+    const metaRow = document.createElement("div");
+    metaRow.className = "meta-row";
+
+    const tm=document.createElement("div");
+    tm.className="time";
     tm.textContent=dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
     metaRow.appendChild(tm);
+
     if(d.name === username){
         const status = document.createElement("div");
         const isRead = d.time <= otherReadTime;
@@ -504,8 +564,11 @@ function renderMessages(messages){
         status.textContent = isRead ? "✓✓" : "✓";
         metaRow.appendChild(status);
     }
-    b.appendChild(metaRow); chat.appendChild(b);
+
+    b.appendChild(metaRow);
+    chat.appendChild(b);
   });
+
   if(wasAtBottom) chat.scrollTop=chat.scrollHeight;
 }
 
@@ -514,5 +577,6 @@ msgInput.addEventListener('input', function() {
   this.style.height = (this.scrollHeight) + 'px';
 });
 </script>
+
 </body>
 </html>
