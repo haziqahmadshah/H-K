@@ -50,8 +50,14 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* MODIFIED: Removed safe-area calculation. Minimal fixed padding. */
-  padding: 15px 14px;
+  
+  /* --- FIXED: Safe Area for Notch/Status Bar --- */
+  padding-top: calc(env(safe-area-inset-top) + 15px);
+  padding-bottom: 15px;
+  padding-left: 14px;
+  padding-right: 14px;
+  /* ------------------------------------------- */
+
   font-weight: 600;
   /* MODIFIED: Solid background to hide hearts/blur in status bar area */
   background: #0b1a20; 
@@ -76,10 +82,15 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
   background: #0b1a20;
-  /* Keep safe area for bottom to prevent overlap with home indicator */
-  padding-bottom: env(safe-area-inset-bottom);
+  
+  /* --- FIXED: Safe Area for Bottom Home Indicator --- */
+  padding-top: 10px;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  /* ------------------------------------------------ */
+
   z-index: 20;
   flex-shrink: 0;
 }
