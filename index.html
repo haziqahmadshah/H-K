@@ -20,18 +20,16 @@ body{
   flex-direction:column;
   color:white;
   background:#0f2027;
-  /* Substrate for the blur effect */
   background-attachment: fixed;
 }
 
-/* SUBTLE BLUR EFFECT ON BACKGROUND */
 body::before {
   content: "";
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Ctext x='30' y='60' font-size='24' fill='rgba(255,140,160,0.12)'%3E❤%3C/text%3E%3Ctext x='110' y='130' font-size='20' fill='rgba(255,140,160,0.1)'%3E❤%3C/text%3E%3C/svg%3E");
   background-repeat:repeat;
-  filter: blur(1.5px); /* Very subtle blur */
+  filter: blur(1.5px);
   z-index: -1;
 }
 
@@ -45,17 +43,6 @@ body::before {
   scroll-behavior:smooth;
 }
 
-.unread-divider{
-  align-self:center;
-  font-size:12px;
-  opacity:0.9;
-  background:rgba(255,255,255,0.2);
-  color: #fff;
-  padding:4px 10px;
-  border-radius:12px;
-  margin:6px 0;
-}
-  
 header{
   display:flex;
   align-items:center;
@@ -68,11 +55,10 @@ header{
   border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-/* H & K TEXT PINK */
 header span {
   flex:1;
   text-align:center;
-  color: #ff8fb1; /* Pink color */
+  color: #ff8fb1;
   text-shadow: 0 0 10px rgba(255, 143, 177, 0.3);
 }
 
@@ -113,12 +99,28 @@ header span {
 .name.blue{color:#4fc3ff}
 .name.pink{color:#ff8fb1}
 
+.time-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .time{
   font-size:10px;
   opacity:0.6;
-  text-align:right;
-  margin-top: 4px;
 }
+
+/* READ RECEIPT STYLE */
+.status{
+  font-size: 12px;
+  line-height: 1;
+  display: none; /* Only show for 'me' messages */
+}
+.me .status { display: inline-block; }
+.status.read { color: #4fc3ff; }
+.status.sent { color: rgba(255,255,255,0.3); }
 
 .img{
   max-width:100%;
@@ -194,7 +196,6 @@ header span {
   min-height:16px;
 }
 
-/* MATCHED TO SCREENSHOT */
 #bar {
   display: flex;
   align-items: center;
@@ -218,19 +219,12 @@ header span {
   max-height: 120px;
 }
 
-#msg::placeholder {
-  color: #a4b0be;
-}
+#msg::placeholder { color: #a4b0be; }
 
-.icon {
-  font-size: 26px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
+.icon { font-size: 26px; cursor: pointer; display: flex; align-items: center; }
 
 button {
-  background: #f8a5c2; /* Soft pink oval */
+  background: #f8a5c2;
   color: white;
   border: none;
   border-radius: 30px;
@@ -279,6 +273,7 @@ button {
 
 <script>
 let replyData=null;
+let otherPersonReadTime = 0;
 
 const CHAT_PASSWORD="Chingam";
 if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
@@ -288,8 +283,6 @@ if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
   }
   localStorage.setItem("chat_pass",CHAT_PASSWORD);
 }
-
-const STARTUP_READ_TIME = Number(localStorage.getItem("last_read_time") || 0);
 
 let username=localStorage.getItem("chat_name");
 if(!username){
@@ -319,9 +312,15 @@ firebase.initializeApp({
 const db=firebase.firestore();
 const del=firebase.firestore.FieldValue.delete();
 
+/* PRESENCE & READ TRACKING */
 const presence=db.collection("presence");
 function heartbeat(){
-  presence.doc(username).set({name:username,time:Date.now()},{merge:true});
+  const now = Date.now();
+  presence.doc(username).set({
+    name:username,
+    time:now,
+    lastRead:now // Track when 'I' last viewed the chat
+  },{merge:true});
 }
 heartbeat();
 setInterval(heartbeat,5000);
@@ -330,8 +329,16 @@ presence.onSnapshot(s=>{
   let hTime=null,kTime=null;
   s.forEach(d=>{
     const n=d.data().name.toLowerCase();
-    if(n.includes("haziq")) hTime=d.data().time;
-    if(n.includes("kaunain")) kTime=d.data().time;
+    const data = d.data();
+    if(n.includes("haziq")) hTime=data.time;
+    if(n.includes("kaunain")) kTime=data.time;
+    
+    // Capture the other person's lastRead time for receipts
+    if(!n.includes(username.toLowerCase())) {
+        otherPersonReadTime = data.lastRead || 0;
+        // Trigger a re-render to update double ticks if needed
+        renderMessages(); 
+    }
   });
   updatePresence("h",hTime);
   updatePresence("k",kTime);
@@ -365,10 +372,8 @@ function send(){
   if(!isAllowed) return;
   const t=msgInput.value.trim();
   if(!t && !replyData) return;
-
   const payload={name:username,text:t,time:Date.now()};
   if(replyData){ payload.replyTo=replyData; cancelReply(); }
-  
   db.collection("messages").add(payload);
   msgInput.value="";
   msgInput.style.height = 'auto';
@@ -401,23 +406,24 @@ function dayLabel(d){
   return d.toLocaleDateString([], {month:'short', day:'numeric'});
 }
 
+let cachedSnap = null;
 db.collection("messages").orderBy("time").onSnapshot(s=>{
+    cachedSnap = s;
+    renderMessages();
+});
+
+function renderMessages() {
+  if(!cachedSnap) return;
   const chat = document.getElementById('chat');
+  const scrollPos = chat.scrollTop;
+  const wasAtBottom = chat.scrollHeight - chat.scrollTop <= chat.clientHeight + 100;
+  
   chat.innerHTML="";
-  let unreadInserted = false;
   let last=null;
 
-  s.forEach(doc=>{
+  cachedSnap.forEach(doc=>{
     const d=doc.data();
     const dt=new Date(d.time);
-
-    if(!unreadInserted && d.time > STARTUP_READ_TIME && STARTUP_READ_TIME > 0 && d.name !== username){
-      const u=document.createElement("div");
-      u.className="unread-divider";
-      u.textContent="New messages";
-      chat.appendChild(u);
-      unreadInserted=true;
-    }
 
     if(!last || !sameDay(last,dt)){
       const sep=document.createElement("div");
@@ -479,11 +485,8 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
         s.textContent=e;
         s.onclick=()=>{
           const cur=(d.reactions||{})[username];
-          if(cur===e){
-            doc.ref.update({["reactions."+username]:del});
-          }else{
-            doc.ref.update({["reactions."+username]:e});
-          }
+          if(cur===e){ doc.ref.update({["reactions."+username]:del}); }
+          else{ doc.ref.update({["reactions."+username]:e}); }
         };
         picker.appendChild(s);
       });
@@ -508,17 +511,27 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
       }
     };
 
+    const tmRow=document.createElement("div");
+    tmRow.className="time-row";
+    
     const tm=document.createElement("div");
     tm.className="time";
     tm.textContent=dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-    b.appendChild(tm);
+    
+    // Double Ticks
+    const status = document.createElement("div");
+    status.className = "status" + (d.time <= otherPersonReadTime ? " read" : " sent");
+    status.innerHTML = "✓✓";
+    
+    tmRow.appendChild(tm);
+    tmRow.appendChild(status);
+    b.appendChild(tmRow);
 
     chat.appendChild(b);
   });
 
-  chat.scrollTop=chat.scrollHeight;
-  localStorage.setItem("last_read_time", Date.now());
-});
+  if(wasAtBottom) chat.scrollTop = chat.scrollHeight;
+}
 
 msgInput.addEventListener('input', function() {
   this.style.height = 'auto';
@@ -528,4 +541,3 @@ msgInput.addEventListener('input', function() {
 
 </body>
 </html>
-
