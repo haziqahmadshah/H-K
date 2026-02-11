@@ -263,10 +263,10 @@ if(localStorage.getItem("chat_pass")!==CHAT_PASSWORD){
   localStorage.setItem("chat_pass",CHAT_PASSWORD);
 }
 
-/* FEATURE 3: UNREAD STATE */
-let lastReadTime = Number(localStorage.getItem("last_read_time") || 0);
-let unreadInserted = false;
-  
+/* FEATURE 3: UNREAD STATE (FIXED) */
+// We capture this ONCE when the app loads
+const STARTUP_READ_TIME = Number(localStorage.getItem("last_read_time") || 0);
+
 /* NAME */
 let username=localStorage.getItem("chat_name");
 if(!username){
@@ -407,6 +407,9 @@ function dayLabel(d){
 /* MESSAGES */
 db.collection("messages").orderBy("time").onSnapshot(s=>{
   chat.innerHTML="";
+  
+  // FIXED: Reset this logic every time the screen redraws
+  let unreadInserted = false;
   let last=null;
 
   s.forEach(doc=>{
@@ -414,7 +417,8 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
     const dt=new Date(d.time);
 
     /* FEATURE 3: UNREAD DIVIDER */
-    if(!unreadInserted && d.time > lastReadTime){
+    // Compare message time to the STARTUP time, not the "live" time
+    if(!unreadInserted && d.time > STARTUP_READ_TIME && STARTUP_READ_TIME > 0){
       const u=document.createElement("div");
       u.className="unread-divider";
       u.textContent="New messages";
@@ -520,7 +524,8 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
   });
 
   chat.scrollTop=chat.scrollHeight;
-  /* FIX: Update last_read_time here, AFTER the loop finishes */
+  
+  // Update the read time for the NEXT time you visit
   localStorage.setItem("last_read_time", Date.now());
 });
 </script>
