@@ -43,7 +43,10 @@ body::before {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
+  height: 100vh; /* Fixed to viewport height */
+  position: absolute;
+  top: 0;
+  bottom: 0;
 }
 
 header {
@@ -59,7 +62,7 @@ header {
   /* ------------------------------------------- */
 
   font-weight: 600;
-  /* MODIFIED: Solid background to hide hearts/blur in status bar area */
+  /* Solid background to hide hearts/blur in status bar area */
   background: #0b1a20; 
   z-index: 20;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -82,17 +85,17 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #0b1a20; /* Ensures the dark background remains visible */
+  background: #0b1a20;
   
-  /* Fixed padding to stay flush at the bottom without safe area gaps */
-  padding: 10px 14px; 
-  
+  /* --- FIXED: Flush Padding (Removed safe-area) --- */
+  padding: 10px 14px;
+  /* ----------------------------------------------- */
+
   z-index: 20;
   flex-shrink: 0;
-  width: 100%;       /* Ensures background spans the full width */
-  box-sizing: border-box; /* Prevents horizontal scroll by including padding in width */
+  width: 100%;             /* Ensures background spans full width */
+  box-sizing: border-box;  /* Prevents horizontal scrolling */
 }
-
 
 /* HEADER TEXT */
 header span {
@@ -283,7 +286,8 @@ const appView = document.getElementById('app-view');
 
 function resizeLayout() {
   if (!viewport) return;
-  appView.style.height = `${viewport.height}px`;
+  // --- FIXED: Disabled height calc to prevent floating footer ---
+  // appView.style.height = `${viewport.height}px`; 
   
   const chat = document.getElementById('chat');
   chat.scrollTop = chat.scrollHeight;
