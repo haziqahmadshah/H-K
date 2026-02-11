@@ -113,7 +113,7 @@ header span {
   opacity:0.6;
 }
 
-/* RECEIPT STYLE */
+/* READ RECEIPT STYLE */
 .status{
   font-size: 12px;
   line-height: 1;
@@ -220,9 +220,16 @@ header span {
   max-height: 120px;
 }
 
-#msg::placeholder { color: #a4b0be; }
+#msg::placeholder {
+  color: #a4b0be;
+}
 
-.icon { font-size: 26px; cursor: pointer; display: flex; align-items: center; }
+.icon {
+  font-size: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
 
 button {
   background: #f8a5c2;
@@ -326,34 +333,25 @@ heartbeat();
 setInterval(heartbeat,5000);
 
 presence.onSnapshot(s=>{
-  let hTime=null,kTime=null;
   s.forEach(d=>{
-    const n=d.data().name.toLowerCase();
     const data = d.data();
-    if(n.includes("haziq")) hTime=data.time;
-    if(n.includes("kaunain")) kTime=data.time;
+    const n = data.name.toLowerCase();
     
+    const who = n.includes("haziq") ? "h" : (n.includes("kaunain") ? "k" : null);
+    if(who) {
+      const dot = document.getElementById("dot-"+who);
+      const label = document.getElementById("last-"+who);
+      const isOnline = (Date.now() - data.time) < 10000;
+      dot.classList.toggle("online", isOnline);
+      label.textContent = isOnline ? "online" : new Date(data.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    }
+
     if(!n.includes(username.toLowerCase())) {
         otherPersonReadTime = data.lastRead || 0;
         renderMessages(); 
     }
   });
-  updatePresence("h",hTime);
-  updatePresence("k",kTime);
 });
-
-function updatePresence(who,time){
-  const dot=document.getElementById("dot-"+who);
-  const label=document.getElementById("last-"+who);
-  dot.classList.remove("online","idle");
-  if(!time){ label.textContent="offline"; return; }
-  const age=Date.now()-time;
-  if(age<8000){ dot.classList.add("online"); label.textContent="online"; }
-  else if(age<20000){ dot.classList.add("idle"); label.textContent="idle"; }
-  else {
-    label.textContent=new Date(time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
-  }
-}
 
 const msgInput = document.getElementById('msg');
 msgInput.addEventListener("input",()=>{
@@ -370,8 +368,10 @@ function send(){
   if(!isAllowed) return;
   const t=msgInput.value.trim();
   if(!t && !replyData) return;
+
   const payload={name:username,text:t,time:Date.now()};
   if(replyData){ payload.replyTo=replyData; cancelReply(); }
+  
   db.collection("messages").add(payload);
   msgInput.value="";
   msgInput.style.height = 'auto';
@@ -515,11 +515,10 @@ function renderMessages() {
     tm.className="time";
     tm.textContent=dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
     
-    // DYNAMIC TICK LOGIC
     const status = document.createElement("div");
     const isRead = d.time <= otherPersonReadTime;
     status.className = "status" + (isRead ? " read" : " sent");
-    status.innerHTML = isRead ? "✓✓" : "✓"; // Single tick for sent, double for read
+    status.innerHTML = isRead ? "✓✓" : "✓"; 
     
     tmRow.appendChild(tm);
     tmRow.appendChild(status);
