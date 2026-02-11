@@ -23,6 +23,7 @@ body{
   background-attachment: fixed;
 }
 
+/* SUBTLE BLUR EFFECT ON BACKGROUND */
 body::before {
   content: "";
   position: fixed;
@@ -112,11 +113,11 @@ header span {
   opacity:0.6;
 }
 
-/* READ RECEIPT STYLE */
+/* RECEIPT STYLE */
 .status{
   font-size: 12px;
   line-height: 1;
-  display: none; /* Only show for 'me' messages */
+  display: none;
 }
 .me .status { display: inline-block; }
 .status.read { color: #4fc3ff; }
@@ -312,14 +313,13 @@ firebase.initializeApp({
 const db=firebase.firestore();
 const del=firebase.firestore.FieldValue.delete();
 
-/* PRESENCE & READ TRACKING */
 const presence=db.collection("presence");
 function heartbeat(){
   const now = Date.now();
   presence.doc(username).set({
     name:username,
     time:now,
-    lastRead:now // Track when 'I' last viewed the chat
+    lastRead:now 
   },{merge:true});
 }
 heartbeat();
@@ -333,10 +333,8 @@ presence.onSnapshot(s=>{
     if(n.includes("haziq")) hTime=data.time;
     if(n.includes("kaunain")) kTime=data.time;
     
-    // Capture the other person's lastRead time for receipts
     if(!n.includes(username.toLowerCase())) {
         otherPersonReadTime = data.lastRead || 0;
-        // Trigger a re-render to update double ticks if needed
         renderMessages(); 
     }
   });
@@ -415,7 +413,6 @@ db.collection("messages").orderBy("time").onSnapshot(s=>{
 function renderMessages() {
   if(!cachedSnap) return;
   const chat = document.getElementById('chat');
-  const scrollPos = chat.scrollTop;
   const wasAtBottom = chat.scrollHeight - chat.scrollTop <= chat.clientHeight + 100;
   
   chat.innerHTML="";
@@ -518,10 +515,11 @@ function renderMessages() {
     tm.className="time";
     tm.textContent=dt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
     
-    // Double Ticks
+    // DYNAMIC TICK LOGIC
     const status = document.createElement("div");
-    status.className = "status" + (d.time <= otherPersonReadTime ? " read" : " sent");
-    status.innerHTML = "✓✓";
+    const isRead = d.time <= otherPersonReadTime;
+    status.className = "status" + (isRead ? " read" : " sent");
+    status.innerHTML = isRead ? "✓✓" : "✓"; // Single tick for sent, double for read
     
     tmRow.appendChild(tm);
     tmRow.appendChild(status);
